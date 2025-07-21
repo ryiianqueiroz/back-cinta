@@ -1,11 +1,13 @@
 const mqtt = require("mqtt");
 const axios = require("axios");
+require('dotenv').config();
 
-const MQTT_USER = "seu_usuario_adafruit";
-const MQTT_KEY = "sua_chave_adafruit";
-const MQTT_TOPIC = `${MQTT_USER}/feeds/esp32.alerta`;
+const MQTT_USER = process.env.ADAFRUIT_USER;
+const MQTT_KEY = process.env.ADAFRUIT_KEY;
+const MQTT_TOPIC = `${MQTT_USER}/feeds/alerta`;
 
-const FCM_SERVER_KEY = "AAA..."; // Firebase Server Key
+const FCM_SERVER_KEY = process.env.FCM_SERVER_KEY;
+const DEVICE_TOKEN = process.env.FCM_DEVICE_TOKEN; // <- pegue do .env
 
 const client = mqtt.connect("mqtts://io.adafruit.com", {
   username: MQTT_USER,
@@ -21,21 +23,25 @@ client.on("message", async (topic, message) => {
   const texto = message.toString();
   console.log("📩 Alerta recebido:", texto);
 
-  // Enviar push via Firebase
-  await axios.post(
-    "https://fcm.googleapis.com/fcm/send",
-    {
-      notification: {
-        title: "Alerta da Cinta",
-        body: texto,
+  try {
+    await axios.post(
+      "https://fcm.googleapis.com/fcm/send",
+      {
+        notification: {
+          title: "Alerta da Cinta",
+          body: texto,
+        },
+        to: DEVICE_TOKEN, // ou: to: "/topics/alertas"
       },
-      to: "TOKEN_DO_DISPOSITIVO", // Ou use topic: '/topics/alertas'
-    },
-    {
-      headers: {
-        Authorization: `key=${FCM_SERVER_KEY}`,
-        "Content-Type": "application/json",
-      },
-    }
-  );
+      {
+        headers: {
+          Authorization: `key=${FCM_SERVER_KEY}`,
+          "Content-Type": "application/json",
+        },
+      }
+    );
+    console.log("✅ Notificação enviada com sucesso!");
+  } catch (err) {
+    console.error("❌ Erro ao enviar notificação:", err.response?.data || err.message);
+  }
 });
