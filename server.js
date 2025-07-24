@@ -5,7 +5,6 @@ const bodyParser = require("body-parser");
 const mqtt = require("mqtt");
 const admin = require("firebase-admin");
 require("dotenv").config();
-const serviceAccount = JSON.parse(process.env.FIREBASE_KEY_JSON);
 
 const app = express();
 const PORT = process.env.PORT || 4000;
@@ -13,10 +12,10 @@ const PORT = process.env.PORT || 4000;
 app.use(cors());
 app.use(bodyParser.json());
 
+const serviceAccount = JSON.parse(process.env.FIREBASE_CONFIG_JSON);
+
 admin.initializeApp({
-  credential: admin.credential.cert(
-    JSON.parse(serviceAccount)
-  ),
+  credential: admin.credential.cert(serviceAccount),
 });
 
 
