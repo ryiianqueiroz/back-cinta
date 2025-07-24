@@ -5,15 +5,13 @@ const bodyParser = require("body-parser");
 const mqtt = require("mqtt");
 const admin = require("firebase-admin");
 require("dotenv").config();
+const serviceAccount = require("./cinta-2eda2-a91f9e0ca01b.json");
 
 const app = express();
 const PORT = process.env.PORT || 4000;
 
 app.use(cors());
 app.use(bodyParser.json());
-
-// Inicializa Firebase Admin SDK com a conta de serviço
-const serviceAccount = require("./service-account.json"); // coloque seu JSON da conta aqui
 
 admin.initializeApp({
   credential: admin.credential.cert(serviceAccount),
@@ -36,6 +34,52 @@ app.post("/register-device-token", (req, res) => {
     console.log("✅ Token salvo com sucesso!");
     res.status(200).json({ message: "Token salvo com sucesso!" });
   });
+});
+
+// Rota GET para teste manual de notificação
+app.get("/test-notification", async (req, res) => {
+  try {
+    const file = fs.readFileSync("device_token.json", "utf8");
+    const token = JSON.parse(file).token;
+
+    const payload = {
+      token: token,
+      notification: {
+        title: "Teste manual",
+        body: "Notificação disparada via navegador!",
+      },
+    };
+
+    const response = await admin.messaging().send(payload);
+    console.log("✅ Notificação teste enviada:", response);
+    res.status(200).json({ message: "✅ Notificação enviada!" });
+  } catch (err) {
+    console.error("❌ Erro ao enviar notificação:", err);
+    res.status(500).json({ error: "Erro ao enviar notificação" });
+  }
+});
+
+// Nova rota GET /send-test para enviar notificação de teste
+app.get("/send-test", async (req, res) => {
+  try {
+    const file = fs.readFileSync("device_token.json", "utf8");
+    const token = JSON.parse(file).token;
+
+    const payload = {
+      token: token,
+      notification: {
+        title: "Teste via /send-test",
+        body: "Esta notificação foi enviada pela rota /send-test!",
+      },
+    };
+
+    const response = await admin.messaging().send(payload);
+    console.log("✅ Notificação /send-test enviada:", response);
+    res.status(200).json({ message: "✅ Notificação /send-test enviada!" });
+  } catch (err) {
+    console.error("❌ Erro ao enviar notificação /send-test:", err);
+    res.status(500).json({ error: "Erro ao enviar notificação /send-test" });
+  }
 });
 
 // Inicializa servidor web
@@ -97,26 +141,3 @@ function startMQTT() {
     }
   });
 }
-
-// Rota para teste manual de notificação
-app.get("/test-notification", async (req, res) => {
-  try {
-    const file = fs.readFileSync("device_token.json", "utf8");
-    const token = JSON.parse(file).token;
-
-    const payload = {
-      token: token,
-      notification: {
-        title: "Teste manual",
-        body: "Notificação disparada via navegador!",
-      },
-    };
-
-    const response = await admin.messaging().send(payload);
-    console.log("✅ Notificação teste enviada:", response);
-    res.status(200).json({ message: "✅ Notificação enviada!" });
-  } catch (err) {
-    console.error("❌ Erro ao enviar notificação:", err);
-    res.status(500).json({ error: "Erro ao enviar notificação" });
-  }
-});
