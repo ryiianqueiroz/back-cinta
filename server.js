@@ -127,3 +127,33 @@ async function sendTestNotification() {
   }
 }
 
+app.get("/test-notification", async (req, res) => {
+  try {
+    const file = fs.readFileSync("device_token.json", "utf8");
+    const token = JSON.parse(file).token;
+    const serverKey = process.env.FCM_SERVER_KEY;
+
+    await axios.post(
+      "https://fcm.googleapis.com/fcm/send",
+      {
+        notification: {
+          title: "Teste manual",
+          body: "Notificação disparada via navegador!",
+        },
+        to: token,
+      },
+      {
+        headers: {
+          Authorization: `key=${serverKey}`,
+          "Content-Type": "application/json",
+        },
+      }
+    );
+
+    res.status(200).json({ message: "✅ Notificação enviada!" });
+  } catch (err) {
+    console.error("❌ Erro ao enviar notificação:", err.message);
+    res.status(500).json({ error: "Erro ao enviar notificação" });
+  }
+});
+
