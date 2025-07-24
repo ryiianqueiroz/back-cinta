@@ -99,27 +99,31 @@ function startMQTT() {
 }
 
 async function sendTestNotification() {
-  const token = JSON.parse(fs.readFileSync("device_token.json", "utf8")).token;
-  const serverKey = process.env.FCM_SERVER_KEY;
+  try {
+    const file = fs.readFileSync("device_token.json", "utf8");
+    const token = JSON.parse(file).token;
+    const serverKey = process.env.FCM_SERVER_KEY;
 
-  const result = await axios.post(
-    "https://fcm.googleapis.com/fcm/send",
-    {
-      notification: {
-        title: "Teste direto",
-        body: "Essa notificação foi enviada sem MQTT!",
+    const result = await axios.post(
+      "https://fcm.googleapis.com/fcm/send",
+      {
+        notification: {
+          title: "Teste direto",
+          body: "Essa notificação foi enviada sem MQTT!",
+        },
+        to: token,
       },
-      to: token,
-    },
-    {
-      headers: {
-        Authorization: `key=${serverKey}`,
-        "Content-Type": "application/json",
-      },
-    }
-  );
+      {
+        headers: {
+          Authorization: `key=${serverKey}`,
+          "Content-Type": "application/json",
+        },
+      }
+    );
 
-  console.log("✅ Resultado:", result.data);
+    console.log("✅ Resultado:", result.data);
+  } catch (err) {
+    console.error("❌ Erro ao tentar enviar notificação de teste:", err.message);
+  }
 }
 
-sendTestNotification();
