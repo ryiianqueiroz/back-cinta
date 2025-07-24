@@ -97,3 +97,29 @@ function startMQTT() {
     }
   });
 }
+
+async function sendTestNotification() {
+  const token = JSON.parse(fs.readFileSync("device_token.json", "utf8")).token;
+  const serverKey = process.env.FCM_SERVER_KEY;
+
+  const result = await axios.post(
+    "https://fcm.googleapis.com/fcm/send",
+    {
+      notification: {
+        title: "Teste direto",
+        body: "Essa notificação foi enviada sem MQTT!",
+      },
+      to: token,
+    },
+    {
+      headers: {
+        Authorization: `key=${serverKey}`,
+        "Content-Type": "application/json",
+      },
+    }
+  );
+
+  console.log("✅ Resultado:", result.data);
+}
+
+sendTestNotification();
