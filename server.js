@@ -3,7 +3,7 @@ const fs = require("fs");
 const cors = require("cors");
 const bodyParser = require("body-parser");
 const mqtt = require("mqtt");
-const axios = require("axios");
+const admin = require("firebase-admin");
 require("dotenv").config();
 
 const app = express();
@@ -11,6 +11,13 @@ const PORT = process.env.PORT || 4000;
 
 app.use(cors());
 app.use(bodyParser.json());
+
+// Inicializa Firebase Admin SDK com a conta de serviço
+const serviceAccount = require("./service-account.json"); // coloque seu JSON da conta aqui
+
+admin.initializeApp({
+  credential: admin.credential.cert(serviceAccount),
+});
 
 // Rota POST para registrar token do dispositivo
 app.post("/register-device-token", (req, res) => {
@@ -44,7 +51,6 @@ function startMQTT() {
   const MQTT_USER = process.env.ADAFRUIT_USER;
   const MQTT_KEY = process.env.ADAFRUIT_KEY;
   const MQTT_TOPIC = `${MQTT_USER}/feeds/alerta`;
-  const FCM_SERVER_KEY = process.env.FCM_SERVER_KEY;
 
   let DEVICE_TOKEN = null;
   try {
@@ -74,86 +80,43 @@ function startMQTT() {
       return;
     }
 
+    // Envia a notificação usando Firebase Admin SDK
+    const payload = {
+      token: DEVICE_TOKEN,
+      notification: {
+        title: "Alerta da Cinta",
+        body: texto,
+      },
+    };
+
     try {
-      await axios.post(
-        "https://fcm.googleapis.com/fcm/send",
-        {
-          notification: {
-            title: "Alerta da Cinta",
-            body: texto,
-          },
-          to: DEVICE_TOKEN,
-        },
-        {
-          headers: {
-            Authorization: `key=${FCM_SERVER_KEY}`,
-            "Content-Type": "application/json",
-          },
-        }
-      );
-      console.log("✅ Notificação enviada com sucesso!");
+      const response = await admin.messaging().send(payload);
+      console.log("✅ Notificação enviada com sucesso! Response:", response);
     } catch (err) {
-      console.error("❌ Erro ao enviar notificação:", err.response?.data || err.message);
+      console.error("❌ Erro ao enviar notificação:", err);
     }
   });
 }
 
-async function sendTestNotification() {
-  try {
-    const file = fs.readFileSync("device_token.json", "utf8");
-    const token = JSON.parse(file).token;
-    const serverKey = process.env.FCM_SERVER_KEY;
-
-    const result = await axios.post(
-      "https://fcm.googleapis.com/fcm/send",
-      {
-        notification: {
-          title: "Teste direto",
-          body: "Essa notificação foi enviada sem MQTT!",
-        },
-        to: token,
-      },
-      {
-        headers: {
-          Authorization: `key=${serverKey}`,
-          "Content-Type": "application/json",
-        },
-      }
-    );
-
-    console.log("✅ Resultado:", result.data);
-  } catch (err) {
-    console.error("❌ Erro ao tentar enviar notificação de teste:", err.message);
-  }
-}
-
+// Rota para teste manual de notificação
 app.get("/test-notification", async (req, res) => {
   try {
     const file = fs.readFileSync("device_token.json", "utf8");
     const token = JSON.parse(file).token;
-    const serverKey = process.env.FCM_SERVER_KEY;
 
-    await axios.post(
-      "https://fcm.googleapis.com/fcm/send",
-      {
-        notification: {
-          title: "Teste manual",
-          body: "Notificação disparada via navegador!",
-        },
-        to: token,
+    const payload = {
+      token: token,
+      notification: {
+        title: "Teste manual",
+        body: "Notificação disparada via navegador!",
       },
-      {
-        headers: {
-          Authorization: `key=${serverKey}`,
-          "Content-Type": "application/json",
-        },
-      }
-    );
+    };
 
+    const response = await admin.messaging().send(payload);
+    console.log("✅ Notificação teste enviada:", response);
     res.status(200).json({ message: "✅ Notificação enviada!" });
   } catch (err) {
-    console.error("❌ Erro ao enviar notificação:", err.message);
+    console.error("❌ Erro ao enviar notificação:", err);
     res.status(500).json({ error: "Erro ao enviar notificação" });
   }
 });
-
