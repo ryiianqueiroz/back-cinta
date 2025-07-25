@@ -1,24 +1,19 @@
-const express = require("express");
-const fs = require("fs");
-const cors = require("cors");
-const bodyParser = require("body-parser");
-const mqtt = require("mqtt");
-const admin = require("firebase-admin");
-require("dotenv").config();
+import mqtt from 'mqtt';
+import bodyParser from 'body-parser';
+import express from 'express';
+import { config } from 'dotenv';
+import cors from "cors"
+import { admin } from './firebase-init.js';
+import { initializeFirebaseAdmin } from "./firebase-init.js";
+
+config();
+initializeFirebaseAdmin();
 
 const app = express();
 const PORT = process.env.PORT || 4000;
 
 app.use(cors());
 app.use(bodyParser.json());
-
-admin.initializeApp({
-  credential: admin.credential.cert({
-    clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
-    privateKey: process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n'),
-    projectId: 'cinta-2eda2'
-  }),
-});
 
 // Rota POST para registrar token do dispositivo
 app.post("/register-device-token", (req, res) => {
