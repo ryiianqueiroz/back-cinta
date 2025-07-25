@@ -12,12 +12,13 @@ const PORT = process.env.PORT || 4000;
 app.use(cors());
 app.use(bodyParser.json());
 
-const serviceAccount = JSON.parse(process.env.FIREBASE_CONFIG_JSON);
-
 admin.initializeApp({
-  credential: admin.credential.cert(serviceAccount),
+  credential: admin.credential.cert({
+    clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
+    privateKey: process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n'),
+    projectId: 'cinta-2eda2'
+  }),
 });
-
 
 // Rota POST para registrar token do dispositivo
 app.post("/register-device-token", (req, res) => {
