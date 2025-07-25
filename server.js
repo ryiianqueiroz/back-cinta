@@ -2,6 +2,7 @@ import mqtt from 'mqtt';
 import bodyParser from 'body-parser';
 import express from 'express';
 import { config } from 'dotenv';
+import fs from "fs"
 import cors from "cors"
 import { admin } from './firebase-init.js';
 import { initializeFirebaseAdmin } from "./firebase-init.js";
