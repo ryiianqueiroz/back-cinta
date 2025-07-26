@@ -16,13 +16,17 @@ const PORT = process.env.PORT || 4000;
 app.use(cors());
 app.use(bodyParser.json());
 
-// Rota POST para registrar token do dispositivo
+let DEVICE_TOKEN = null; // Defina no topo do seu server.js
+
 app.post("/register-device-token", (req, res) => {
   const { token } = req.body;
 
   if (!token) {
     return res.status(400).json({ error: "Token ausente no body." });
   }
+
+  // ✅ Atualiza variável em memória
+  DEVICE_TOKEN = token;
 
   fs.writeFile("device_token.json", JSON.stringify({ token }, null, 2), (err) => {
     if (err) {
@@ -34,6 +38,7 @@ app.post("/register-device-token", (req, res) => {
     res.status(200).json({ message: "Token salvo com sucesso!" });
   });
 });
+
 
 // Rota GET para teste manual de notificação
 app.get("/test-notification", async (req, res) => {
@@ -95,13 +100,13 @@ function startMQTT() {
   const MQTT_KEY = process.env.ADAFRUIT_KEY;
   const MQTT_TOPIC = `${MQTT_USER}/feeds/alerta`;
 
-  let DEVICE_TOKEN = null;
+  // → Se existir token salvo no disco, carregue no início
   try {
     const tokenData = fs.readFileSync("device_token.json", "utf-8");
     DEVICE_TOKEN = JSON.parse(tokenData).token;
     console.log("✅ Token FCM carregado do arquivo.");
-  } catch (err) {
-    console.warn("⚠️ Token FCM não encontrado. Registre com POST /register-device-token");
+  } catch {
+    console.warn("⚠️ Token FCM não encontrado no arquivo. Aguardando registro...");
   }
 
   const client = mqtt.connect("mqtts://io.adafruit.com", {
@@ -123,20 +128,18 @@ function startMQTT() {
       return;
     }
 
-    // Envia a notificação usando Firebase Admin SDK
-    const payload = {
-      token: DEVICE_TOKEN,
-      notification: {
-        title: "Alerta da Cinta",
-        body: texto,
-      },
-    };
-
     try {
-      const response = await admin.messaging().send(payload);
-      console.log("✅ Notificação enviada com sucesso! Response:", response);
+      const response = await admin.messaging().send({
+        token: DEVICE_TOKEN,
+        notification: {
+          title: "Alerta da Cinta",
+          body: texto,
+        },
+      });
+      console.log("✅ Notificação enviada:", response);
     } catch (err) {
       console.error("❌ Erro ao enviar notificação:", err);
     }
   });
 }
+
