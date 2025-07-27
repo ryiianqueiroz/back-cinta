@@ -5,11 +5,13 @@ import { config } from 'dotenv';
 import fs from "fs"
 import cors from "cors"
 import { admin } from './firebase-init.js';
-import { initializeFirebaseAdmin } from "./firebase-init.js";
-import { db } from "./firebase-init.js";
+import { initializeFirebaseAdmin, getFirestore } from "./firebase-init.js";
+
+initializeFirebaseAdmin(); 
+
+const db = getFirestore();
 
 config();
-initializeFirebaseAdmin();
 
 const app = express();
 const PORT = process.env.PORT || 4000;
@@ -42,7 +44,7 @@ app.post("/register-device-token", async (req, res) => {
 // Rota GET para teste manual de notificação
 app.get("/test-notification", async (req, res) => {
   try {
-    const file = fs.readFileSync("device_token.json", "utf8");
+    const file = db.collection("deviceTokens").doc("latest").get()
     const token = JSON.parse(file).token;
 
     const payload = {
@@ -65,7 +67,7 @@ app.get("/test-notification", async (req, res) => {
 // Nova rota GET /send-test para enviar notificação de teste
 app.get("/send-test", async (req, res) => {
   try {
-    const file = fs.readFileSync("device_token.json", "utf8");
+    const file = db.collection("deviceTokens").doc("latest").get()
     const token = JSON.parse(file).token;
 
     const payload = {

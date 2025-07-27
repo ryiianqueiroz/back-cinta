@@ -1,7 +1,9 @@
 import admin from "firebase-admin";
 
-const initializeFirebaseAdmin = () => {
-  if (!admin.apps.length) {
+let appInitialized = false;
+
+function initializeFirebaseAdmin() {
+  if (!appInitialized) {
     admin.initializeApp({
       credential: admin.credential.cert({
         projectId: process.env.FIREBASE_PROJECT_ID,
@@ -9,9 +11,16 @@ const initializeFirebaseAdmin = () => {
         privateKey: process.env.FIREBASE_PRIVATE_KEY.replace(/\\n/g, "\n"),
       }),
     });
+    appInitialized = true;
+    console.log("✅ Firebase Admin inicializado");
   }
-};
+}
 
-const db = admin.firestore();
+function getFirestore() {
+  if (!appInitialized) {
+    throw new Error("Firebase Admin não inicializado. Chame initializeFirebaseAdmin() antes.");
+  }
+  return admin.firestore();
+}
 
-export { initializeFirebaseAdmin, admin, db };
+export { initializeFirebaseAdmin, getFirestore, admin };
