@@ -4,7 +4,7 @@ import express from 'express';
 import { config } from 'dotenv';
 import fs from "fs"
 import cors from "cors"
-import { initializeFirebaseAdmin, admin } from "./firebase-admin-init.js";
+import { initializeFirebaseAdmin, admin } from "./firebase-init.js";
 
 initializeFirebaseAdmin(); 
 
