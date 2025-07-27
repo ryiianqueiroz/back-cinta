@@ -5,11 +5,13 @@ import { config } from 'dotenv';
 import fs from "fs"
 import cors from "cors"
 import { admin } from './firebase-init.js';
-import { initializeFirebaseAdmin, getFirestore } from "./firebase-init.js";
+import { initializeFirebaseAdmin, admin } from "./firebase-admin-init.js";
 
 initializeFirebaseAdmin(); 
 
-const db = getFirestore();
+
+const db = admin.firestore();
+
 
 config();
 
