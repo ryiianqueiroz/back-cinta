@@ -6,6 +6,7 @@ import fs from "fs"
 import cors from "cors"
 import { admin } from './firebase-init.js';
 import { initializeFirebaseAdmin } from "./firebase-init.js";
+import { db } from "./firebase-init.js";
 
 config();
 initializeFirebaseAdmin();
@@ -18,25 +19,23 @@ app.use(bodyParser.json());
 
 let DEVICE_TOKEN = null; // Defina no topo do seu server.js
 
-app.post("/register-device-token", (req, res) => {
+app.post("/register-device-token", async (req, res) => {
   const { token } = req.body;
 
   if (!token) {
     return res.status(400).json({ error: "Token ausente no body." });
   }
 
-  // ✅ Atualiza variável em memória
-  DEVICE_TOKEN = token;
+  try {
+    await db.collection("deviceTokens").doc("latest").set({ token });
+    DEVICE_TOKEN = token;
 
-  fs.writeFile("device_token.json", JSON.stringify({ token }, null, 2), (err) => {
-    if (err) {
-      console.error("Erro ao salvar token:", err);
-      return res.status(500).json({ error: "Erro ao salvar token" });
-    }
-
-    console.log("✅ Token salvo com sucesso!");
-    res.status(200).json({ message: "Token salvo com sucesso!" });
-  });
+    console.log("✅ Token salvo no Firestore!");
+    res.status(200).json({ message: "Token salvo no Firestore!" });
+  } catch (err) {
+    console.error("❌ Erro ao salvar token:", err);
+    res.status(500).json({ error: "Erro ao salvar token no Firestore" });
+  }
 });
 
 
@@ -95,19 +94,24 @@ app.listen(PORT, () => {
 // ===============================
 // Função para iniciar o cliente MQTT
 // ===============================
-function startMQTT() {
+async function startMQTT() {
   const MQTT_USER = process.env.ADAFRUIT_USER;
   const MQTT_KEY = process.env.ADAFRUIT_KEY;
   const MQTT_TOPIC = `${MQTT_USER}/feeds/alerta`;
 
   // → Se existir token salvo no disco, carregue no início
   try {
-    const tokenData = fs.readFileSync("device_token.json", "utf-8");
-    DEVICE_TOKEN = JSON.parse(tokenData).token;
-    console.log("✅ Token FCM carregado do arquivo.");
-  } catch {
-    console.warn("⚠️ Token FCM não encontrado no arquivo. Aguardando registro...");
+    const doc = await db.collection("deviceTokens").doc("latest").get();
+    if (doc.exists) {
+      DEVICE_TOKEN = doc.data().token;
+      console.log("✅ Token FCM carregado do Firestore.");
+    } else {
+      console.warn("⚠️ Nenhum token salvo no Firestore.");
+    }
+  } catch (err) {
+    console.error("❌ Erro ao carregar token:", err);
   }
+
 
   const client = mqtt.connect("mqtts://io.adafruit.com", {
     username: MQTT_USER,

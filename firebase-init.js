@@ -1,20 +1,17 @@
-// firebase-admin-init.js
-import admin from 'firebase-admin';
+import admin from "firebase-admin";
 
 const initializeFirebaseAdmin = () => {
-  if (admin.apps.length === 0) {
-    const firebase_private_key_b64 = process.env.FIREBASE_API_KEY;
-
-    if (!firebase_private_key_b64) {
-      throw new Error('FIREBASE_KEYS not found in environment variables');
-    }
-
-    const firebase_private_key = Buffer.from(firebase_private_key_b64, 'base64').toString('utf8');
-
+  if (!admin.apps.length) {
     admin.initializeApp({
-      credential: admin.credential.cert(JSON.parse(firebase_private_key)),
+      credential: admin.credential.cert({
+        projectId: process.env.FIREBASE_PROJECT_ID,
+        clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
+        privateKey: process.env.FIREBASE_PRIVATE_KEY.replace(/\\n/g, "\n"),
+      }),
     });
   }
 };
 
-export { initializeFirebaseAdmin, admin };
+const db = admin.firestore();
+
+export { initializeFirebaseAdmin, admin, db };
